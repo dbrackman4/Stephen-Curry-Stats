@@ -1,0 +1,38 @@
+---
+title: "Stephen Curry Stats"
+author: "Drew Brackman"
+date: "2024-07-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+curry <- read.csv("currycareer.csv")
+#filtering and subsetting datasets
+curry_2016 <- curry %>%
+  filter(Season == 2016)
+curry_2015 <- filter(curry, Season == 2015)
+curry_2010 <- filter(curry, Season == 2010)
+curry_rookie_and_mvp <- curry %>%
+  filter(Season %in% c(2010, 2016))
+```
+
+```{r}
+ggplot(data = curry_2016, aes(x = FG., y = PTS)) + geom_point(color = "red") + geom_smooth(method = "lm", se = FALSE, color = "blue") + labs(x = "Field Goal Percentage", y = "Points", title = "Stephen Curry 2016 FG% vs Points")
+
+ggplot(data = curry_2016, aes(x = Loc, y = PTS)) + geom_violin(color = "black", trim = FALSE) + geom_jitter(color = "blue") + stat_summary(fun = median, geom = "crossbar", color = "red") + labs(x = "Home or Away", y = "Points")
+```
+
+```{r}
+testplot <- curry %>%
+  filter(Season %in% c(2010, 2016)) %>%
+  ggplot(aes(x = Loc, y = PTS, fill = Season, colour = Season)) + geom_boxplot(color = "red") + geom_jitter()
+testplot
+```
+
