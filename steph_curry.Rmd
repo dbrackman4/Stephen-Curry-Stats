@@ -11,7 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
+#libraries
 library(ggplot2)
+library(gridExtra)
 library(tidyverse)
 curry <- read.csv("currycareer.csv")
 #filtering and subsetting datasets
@@ -24,15 +26,143 @@ curry_rookie_and_mvp <- curry %>%
 ```
 
 ```{r}
-ggplot(data = curry_2016, aes(x = FG., y = PTS)) + geom_point(color = "red") + geom_smooth(method = "lm", se = FALSE, color = "blue") + labs(x = "Field Goal Percentage", y = "Points", title = "Stephen Curry 2016 FG% vs Points")
+plot1 <- ggplot(data = curry_2016, aes(x = FG., y = PTS)) + geom_point(color = "red") + geom_smooth(method = "lm", se = FALSE, color = "blue") + labs(x = "Field Goal Percentage", y = "Points", title = "Stephen Curry 2016 FG% vs Points")
 
-ggplot(data = curry_2016, aes(x = Loc, y = PTS)) + geom_violin(color = "black", trim = FALSE) + geom_jitter(color = "blue") + stat_summary(fun = median, geom = "crossbar", color = "red") + labs(x = "Home or Away", y = "Points")
+plot2 <- ggplot(data = curry_2016, aes(x = Loc, y = PTS)) + geom_violin(color = "black", trim = FALSE) + geom_jitter(color = "blue") + stat_summary(fun = median, geom = "crossbar", color = "red") + labs(x = "Home or Away", y = "Points")
+
+grid.arrange(plot1, plot2, plot2, plot1, ncol = 2, nrow = 2)
 ```
 
 ```{r}
-testplot <- curry %>%
+#Plot comparing points in rookie season vs 2016 season during home/away games
+curry %>%
   filter(Season %in% c(2010, 2016)) %>%
   ggplot(aes(x = Loc, y = PTS, fill = Season, colour = Season)) + geom_boxplot(color = "red") + geom_jitter()
-testplot
+```
+
+```{r}
+games_ten_plus_threes_attempted <- curry %>%
+  filter(X3PA >= 10)
+
+ggplot(games_ten_plus_threes_attempted, aes(x = X3PA, y = X3P.)) + geom_point() + geom_jitter()
+```
+
+```{r}
+#Interesting Data Points
+
+#Most three pointers Steph has made without a miss
+curry %>% 
+  filter(X3P. == 1) %>%
+  select(X3P) %>%
+  max()
+
+#Most shots Steph has made without a miss
+curry %>%
+  filter(FG. == 1) %>%
+  select(FG) %>%
+  max()
+
+#Most free throws Steph has made without a miss
+curry %>%
+  filter(FT. == 1) %>%
+  select(FT) %>%
+  max()
+```
+
+```{r}
+#Interesting Plots
+
+#Pie chart with n different seasons (using par mfrow()) with the distribution of how points were generated (3P, 2P, FT)
+
+#create dataframe of proportions of points generated per season
+curry_proportions <- curry %>%
+  select(FT, X3P, PTS, Season) %>%
+  group_by(Season) %>%
+  summarize(
+    total_free_throws = sum(FT),
+    total_points_from_two = sum(PTS) - 3 * sum(X3P) - sum(FT),
+    total_points_from_three = 3 * sum(X3P),
+    total_points = sum(PTS)
+  ) %>%
+  mutate(
+    free_throws_proportion = total_free_throws / total_points,
+    two_pointers_proportion = total_points_from_two / total_points,
+    three_pointers_proportion = total_points_from_three / total_points
+  ) %>%
+  select(Season, free_throws_proportion, two_pointers_proportion, three_pointers_proportion)
+
+#Creation of pie chart colors
+pie_colors = c("orangered", "orchid", "palegreen")
+
+#Creation of pie charts
+pie_chart_2010 <- curry_proportions %>%
+  filter(Season == 2010) %>%
+  pivot_longer(cols = c(free_throws_proportion, two_pointers_proportion, three_pointers_proportion),
+               names_to = "type",
+               values_to = "proportion") %>%
+  ggplot(aes(x = "", y = proportion, fill = type)) +
+  geom_bar(stat="identity", width=1, size = 1, color="white") +
+  coord_polar("y") +
+  geom_text(aes(label = paste0(round(proportion * 100, 0), "%")), position = position_stack(vjust = 0.5)) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Distribution of Points Generated - 2010") + 
+  scale_fill_manual(values = pie_colors,
+                    labels = c("free_throws_proportion" = "Free Throws",
+                               "two_pointers_proportion" = "Two Pointers",
+                               "three_pointers_proportion" = "Three Pointers")) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_void()
+
+pie_chart_2013 <- curry_proportions %>%
+  filter(Season == 2013) %>%
+  pivot_longer(cols = c(free_throws_proportion, two_pointers_proportion, three_pointers_proportion),
+               names_to = "type",
+               values_to = "proportion") %>%
+  ggplot(aes(x = "", y = proportion, fill = type)) +
+  geom_bar(stat="identity", width=1, size = 1, color="white") +
+  coord_polar("y") +
+  geom_text(aes(label = paste0(round(proportion * 100, 0), "%")), position = position_stack(vjust = 0.5)) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Distribution of Points Generated - 2013") + 
+  scale_fill_manual(values = pie_colors,
+                    labels = c("free_throws_proportion" = "Free Throws",
+                               "two_pointers_proportion" = "Two Pointers",
+                               "three_pointers_proportion" = "Three Pointers")) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_void()
+
+pie_chart_2015 <- curry_proportions %>%
+  filter(Season == 2015) %>%
+  pivot_longer(cols = c(free_throws_proportion, two_pointers_proportion, three_pointers_proportion),
+               names_to = "type",
+               values_to = "proportion") %>%
+  ggplot(aes(x = "", y = proportion, fill = type)) +
+  geom_bar(stat="identity", width=1, size = 1, color="white") +
+  coord_polar("y") +
+  geom_text(aes(label = paste0(round(proportion * 100, 0), "%")), position = position_stack(vjust = 0.5)) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Distribution of Points Generated - 2015") + 
+  scale_fill_manual(values = pie_colors,
+                    labels = c("free_throws_proportion" = "Free Throws",
+                               "two_pointers_proportion" = "Two Pointers",
+                               "three_pointers_proportion" = "Three Pointers")) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_void()
+
+pie_chart_2016 <- curry_proportions %>%
+  filter(Season == 2016) %>%
+  pivot_longer(cols = c(free_throws_proportion, two_pointers_proportion, three_pointers_proportion),
+               names_to = "type",
+               values_to = "proportion") %>%
+  ggplot(aes(x = "", y = proportion, fill = type)) +
+  geom_bar(stat="identity", width=1, size = 1, color="white") +
+  coord_polar("y") +
+  geom_text(aes(label = paste0(round(proportion * 100, 0), "%")), position = position_stack(vjust = 0.5)) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Distribution of Points Generated - 2016") + 
+  scale_fill_manual(values = pie_colors,
+                    labels = c("free_throws_proportion" = "Free Throws",
+                               "two_pointers_proportion" = "Two Pointers",
+                               "three_pointers_proportion" = "Three Pointers")) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_void()
+
+grid.arrange(pie_chart_2010, pie_chart_2013, pie_chart_2015, pie_chart_2016, nrow = 2, ncol = 2)
 ```
 
